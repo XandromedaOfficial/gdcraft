@@ -1,0 +1,137 @@
+[gd_scene load_steps=21 format=3 uid="uid://deug4hw2fe0b"]
+
+[ext_resource type="FontFile" uid="uid://1gd5xu7dsl2j" path="res://assets/fonts/minecraft_font.ttf" id="1_4c57u"]
+[ext_resource type="Script" uid="uid://cbhxvp6w2efwi" path="res://scripts/terrain/block_manager.gd" id="1_ig7tw"]
+[ext_resource type="Script" uid="uid://dgd27i5i7pf2t" path="res://scripts/terrain/block.gd" id="2_7mycd"]
+[ext_resource type="Texture2D" uid="uid://djtgsxrjdw0w7" path="res://assets/textures/blocks/cobblestone.png" id="3_lquwl"]
+[ext_resource type="Texture2D" uid="uid://cd04yagxhc3jh" path="res://assets/textures/blocks/dirt.png" id="4_5vw27"]
+[ext_resource type="Texture2D" uid="uid://kh8spl2uv3ny" path="res://assets/textures/blocks/grass_side.png" id="4_272bh"]
+[ext_resource type="Texture2D" uid="uid://c8l581p5b6fjg" path="res://assets/textures/blocks/grass_top.png" id="5_5vw27"]
+[ext_resource type="Script" uid="uid://btxm0irr3cgt3" path="res://scripts/terrain/chunk_manager.gd" id="6_7mycd"]
+[ext_resource type="PackedScene" uid="uid://ce8un2atv51r1" path="res://scenes/chunk.tscn" id="7_272bh"]
+[ext_resource type="Texture2D" uid="uid://csl4cvk3gafqr" path="res://assets/textures/blocks/water.png" id="8_efxa6"]
+[ext_resource type="PackedScene" uid="uid://tj0totgwdf8t" path="res://scenes/player.tscn" id="9_kek77"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_efxa6"]
+font = ExtResource("1_4c57u")
+outline_color = Color(0, 0, 0, 1)
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_kek77"]
+sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+ground_bottom_color = Color(0.33, 0.33, 0.33, 1)
+ground_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+
+[sub_resource type="Sky" id="Sky_4c57u"]
+sky_material = SubResource("ProceduralSkyMaterial_kek77")
+
+[sub_resource type="Environment" id="Environment_efxa6"]
+background_mode = 2
+sky = SubResource("Sky_4c57u")
+tonemap_mode = 2
+glow_enabled = true
+fog_enabled = true
+fog_mode = 1
+fog_density = 1.0
+fog_depth_begin = 1.0
+
+[sub_resource type="Resource" id="Resource_272bh"]
+script = ExtResource("2_7mycd")
+is_transparent = false
+is_liquid = false
+is_air = true
+flow_speed = 1.0
+metadata/_custom_type_script = "uid://dgd27i5i7pf2t"
+
+[sub_resource type="Resource" id="Resource_4c57u"]
+script = ExtResource("2_7mycd")
+texture = ExtResource("3_lquwl")
+top_texture = ExtResource("3_lquwl")
+bottom_texture = ExtResource("3_lquwl")
+is_transparent = false
+is_liquid = false
+is_air = false
+flow_speed = 1.0
+metadata/_custom_type_script = "uid://dgd27i5i7pf2t"
+
+[sub_resource type="Resource" id="Resource_efxa6"]
+script = ExtResource("2_7mycd")
+texture = ExtResource("4_5vw27")
+top_texture = ExtResource("4_5vw27")
+bottom_texture = ExtResource("4_5vw27")
+is_transparent = false
+is_liquid = false
+is_air = false
+flow_speed = 1.0
+metadata/_custom_type_script = "uid://dgd27i5i7pf2t"
+
+[sub_resource type="Resource" id="Resource_7mycd"]
+script = ExtResource("2_7mycd")
+texture = ExtResource("4_272bh")
+top_texture = ExtResource("5_5vw27")
+bottom_texture = ExtResource("4_272bh")
+is_transparent = false
+is_liquid = false
+is_air = false
+flow_speed = 1.0
+metadata/_custom_type_script = "uid://dgd27i5i7pf2t"
+
+[sub_resource type="Resource" id="Resource_dg77c"]
+script = ExtResource("2_7mycd")
+texture = ExtResource("8_efxa6")
+top_texture = ExtResource("8_efxa6")
+bottom_texture = ExtResource("8_efxa6")
+is_transparent = true
+is_liquid = true
+is_air = false
+flow_speed = 1.0
+metadata/_custom_type_script = "uid://dgd27i5i7pf2t"
+
+[node name="main" type="Node3D"]
+
+[node name="GUI" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="GUI"]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 227.0
+offset_bottom = 28.0
+text = "Minecraft Beta 0.0_01a"
+label_settings = SubResource("LabelSettings_efxa6")
+
+[node name="Debug" type="Label" parent="GUI"]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 32.0
+offset_right = 228.0
+offset_bottom = 55.0
+label_settings = SubResource("LabelSettings_efxa6")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_efxa6")
+
+[node name="BlockManager" type="Node" parent="."]
+script = ExtResource("1_ig7tw")
+air = SubResource("Resource_272bh")
+stone = SubResource("Resource_4c57u")
+dirt = SubResource("Resource_efxa6")
+grass = SubResource("Resource_7mycd")
+water = SubResource("Resource_dg77c")
+
+[node name="ChunkManager" type="Node" parent="."]
+script = ExtResource("6_7mycd")
+chunk_scene = ExtResource("7_272bh")
+player_path = NodePath("../Player")
+render_distance = 10
+metadata/_custom_type_script = "uid://btxm0irr3cgt3"
+
+[node name="Player" parent="." instance=ExtResource("9_kek77")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 36, 0)
+head_bob_time = 1.5
+head_bob_speed = 10.0

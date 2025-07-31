@@ -1,0 +1,10 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://q81rk1nhx0rj"]
+
+[sub_resource type="GDScript" id="GDScript_axanu"]
+script/source = "@export var texture: Texture2D = preload(\"res://textures/water_side.png\")
+@export var top_texture: Texture2D = preload(\"res://textures/water_top.png\")
+@export var bottom_texture: Texture2D = preload(\"res://textures/water_bottom.png\")
+"
+
+[resource]
+script = SubResource("GDScript_axanu")
