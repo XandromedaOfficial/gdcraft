@@ -7,7 +7,7 @@ noise_type = 3
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_jtw3q"]
 noise_type = 3
-frequency = 0.037
+frequency = 0.0015
 fractal_type = 0
 
 [node name="Chunk" type="StaticBody3D" node_paths=PackedStringArray("collision_shape", "mesh_instance")]

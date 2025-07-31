@@ -9,6 +9,9 @@ class_name ChunkManager
 @export var player_path: NodePath
 @export var render_distance := 2  # how many chunks in each direction
 
+# Use a const for dimensions since we can't access Chunk class directly here
+const CHUNK_DIMENSIONS := Vector3i(8, 32, 8)
+
 # ─────────────────────────────
 # RUNTIME DATA
 # ─────────────────────────────
@@ -20,7 +23,7 @@ var _last_player_chunk := Vector2i.ZERO
 # Chunks in use and available
 var _chunk_to_position: Dictionary = {}
 var _position_to_chunk: Dictionary = {}
-var _chunk_pool: Array[Chunk] = []
+var _chunk_pool: Array = []  # Remove the [Chunk] type hint to avoid circular dependency
 
 func _ready():
 	if Engine.is_editor_hint():
@@ -60,13 +63,15 @@ func generate_initial_chunks():
 		for z in range(player_chunk.y - render_distance, player_chunk.y + render_distance + 1):
 			var pos = Vector2i(x, z)
 			if not _position_to_chunk.has(pos):
-				var chunk: Chunk = get_chunk_from_pool()
+				var chunk = get_chunk_from_pool()
 				get_parent().call_deferred("add_child", chunk)
+
 				# Update chunk dictionaries immediately
 				_position_to_chunk[pos] = chunk
 				_chunk_to_position[chunk] = pos
-				# Positioning can also be deferred to avoid "not in tree" issues
-				chunk.call_deferred("set_chunk_position", pos)
+				
+				# Use call_deferred to call a method that doesn't depend on Chunk class
+				chunk.call_deferred("call", "set_chunk_position", pos)
 
 				await get_tree().process_frame  # Optional: smoother load
 				
@@ -84,37 +89,25 @@ func get_player_chunk() -> Vector2i:
 		return Vector2i.ZERO
 	var pos = _player.global_position
 	return Vector2i(
-		int(floor(pos.x / Chunk.dimensions.x)),
-		int(floor(pos.z / Chunk.dimensions.z))
+		int(floor(pos.x / float(CHUNK_DIMENSIONS.x))),
+		int(floor(pos.z / float(CHUNK_DIMENSIONS.z)))
 	)
 	
-func get_chunk(pos: Vector2i) -> Chunk:
+func get_chunk(pos: Vector2i):
 	if _position_to_chunk.has(pos):
 		return _position_to_chunk[pos]
 	return null
 
-func get_block_at_world_position(world_pos: Vector3) -> Block:
-	var dims = Chunk.dimensions
-	var chunk_x = int(floor(world_pos.x / float(dims.x)))
-	var chunk_z = int(floor(world_pos.z / float(dims.z)))
+func get_block_at_world_position(world_pos: Vector3):
+	var chunk_x = int(floor(world_pos.x / float(CHUNK_DIMENSIONS.x)))
+	var chunk_z = int(floor(world_pos.z / float(CHUNK_DIMENSIONS.z)))
 	var chunk_pos = Vector2i(chunk_x, chunk_z)
 	var chunk = get_chunk(chunk_pos)
 
-	if not chunk:
+	if not chunk or !chunk.has_method("get_block"):
 		return null
 
-	var local_x = int(world_pos.x) % dims.x
-	if local_x < 0: local_x += dims.x
-
-	var local_y = clamp(int(world_pos.y), 0, dims.y - 1)
-
-	var local_z = int(world_pos.z) % dims.z
-	if local_z < 0: local_z += dims.z
-	
-	var block = chunk._blocks[local_x][local_y][local_z]
-	$"../GUI/Debug".text = "Block at " + str(world_pos) + " → local: (" + str(local_x) + ", " + str(local_y) + ", " + str(local_z) + ") is " + str(block.is_liquid)
-
-	return chunk._blocks[local_x][local_y][local_z]
+	return chunk.call("get_block", world_pos)
 
 func update_chunks_around_player():
 	var player_chunk = _last_player_chunk
@@ -126,14 +119,14 @@ func update_chunks_around_player():
 			new_visible[pos] = true
 
 			if not _position_to_chunk.has(pos):
-				var chunk: Chunk = get_chunk_from_pool()
+				var chunk = get_chunk_from_pool()
 				get_parent().call_deferred("add_child", chunk)
 
 				# Update dictionaries before calling set_chunk_position
 				_position_to_chunk[pos] = chunk
 				_chunk_to_position[chunk] = pos
 
-				chunk.call_deferred("set_chunk_position", pos)
+				chunk.call_deferred("call", "set_chunk_position", pos)
 				await get_tree().create_timer(0.01).timeout
 
 	# Unload chunks outside of render range
@@ -154,12 +147,13 @@ func update_chunks_around_player():
 		if _chunk_to_position.has(chunk):
 			_chunk_to_position.erase(chunk)
 
-func get_chunk_from_pool() -> Chunk:
+func get_chunk_from_pool():
 	if _chunk_pool.size() > 0:
 		var chunk = _chunk_pool.pop_back()
-		chunk.visible = true
-		chunk.set_process(true)
-		return chunk
+		if is_instance_valid(chunk):
+			chunk.visible = true
+			chunk.set_process(true)
+			return chunk
 
 	if chunk_scene:
 		return chunk_scene.instantiate()
@@ -167,7 +161,7 @@ func get_chunk_from_pool() -> Chunk:
 	push_error("❗ Could not create chunk: chunk_scene is null")
 	return null
 
-func update_chunk_position(chunk: Chunk, current: Vector2i, previous: Vector2i):
+func update_chunk_position(chunk, current: Vector2i, previous: Vector2i):
 	if _position_to_chunk.has(previous) and _position_to_chunk[previous] == chunk:
 		_position_to_chunk.erase(previous)
 	_chunk_to_position[chunk] = current

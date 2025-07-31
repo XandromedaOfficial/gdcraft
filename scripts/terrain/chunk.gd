@@ -56,9 +56,7 @@ func generate():
 
 				var surface_height = int(dimensions.y * ((terrain_noise.get_noise_2d(global_x, global_z) + 1.0) / 2.0))
 				var cave_val = cave_noise.get_noise_3d(global_x, global_y, global_z)
-
 				var block: Block
-
 				if global_y > surface_height:
 					if global_y < 14:
 						block = BlockManager.instance.water  # Water level
@@ -79,34 +77,124 @@ func update_chunk():
 	_surface_tool.clear()
 	_surface_tool.begin(Mesh.PRIMITIVE_TRIANGLES)
 
+	var collision_tool := SurfaceTool.new()
+	collision_tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+
 	for x in dimensions.x:
 		for y in dimensions.y:
 			for z in dimensions.z:
-				create_block_mesh(Vector3i(x, y, z))
+				var pos := Vector3i(x, y, z)
+				var block: Block = _blocks[x][y][z]
+				if block == BlockManager.instance.air:
+					continue
+
+				# Create visual mesh
+				create_block_mesh(pos)
+
+				# Create collision mesh ONLY if not water
+				if block != BlockManager.instance.water:
+					create_block_mesh_custom_tool(pos, collision_tool)
 
 	_surface_tool.set_material(BlockManager.instance.chunk_material)
 	var mesh = _surface_tool.commit()
+	var collision_mesh = collision_tool.commit()
 
 	mesh_instance.mesh = mesh
-	collision_shape.shape = mesh.create_trimesh_shape()
+
+	if collision_mesh and collision_mesh.get_surface_count() > 0:
+		collision_shape.shape = collision_mesh.create_trimesh_shape()
+	else:
+		collision_shape.shape = null
+
+func create_block_mesh_custom_tool(pos: Vector3i, tool: SurfaceTool):
+	var block = _blocks[pos.x][pos.y][pos.z]
+	if block == BlockManager.instance.air:
+		return
+
+	if check_transparent(pos + Vector3i.UP):
+		create_face_with_tool(_top, pos, block.top_texture if block.top_texture else block.texture, tool)
+	if check_transparent(pos + Vector3i.DOWN):
+		create_face_with_tool(_bottom, pos, block.bottom_texture if block.bottom_texture else block.texture, tool)
+	if check_transparent(pos + Vector3i.LEFT):
+		create_face_with_tool(_left, pos, block.texture, tool)
+	if check_transparent(pos + Vector3i.RIGHT):
+		create_face_with_tool(_right, pos, block.texture, tool)
+	if check_transparent(pos + Vector3i.FORWARD):
+		create_face_with_tool(_front, pos, block.texture, tool)
+	if check_transparent(pos + Vector3i.BACK):
+		create_face_with_tool(_back, pos, block.texture, tool)
+
+func create_face_with_tool(face: Array, pos: Vector3i, texture: Texture2D, tool: SurfaceTool):
+	var tex_pos = BlockManager.instance.get_texture_atlas_position(texture)
+	var atlas_size = BlockManager.instance.texture_atlas_size
+
+	var uv_offset = Vector2(tex_pos) / atlas_size
+	var uv_size = Vector2(1.0 / atlas_size.x, 1.0 / atlas_size.y)
+
+	var uvs = [
+		uv_offset,
+		uv_offset + Vector2(0, uv_size.y),
+		uv_offset + uv_size,
+		uv_offset + Vector2(uv_size.x, 0)
+	]
+
+	var verts = [
+		_vertices[face[0]] + pos,
+		_vertices[face[1]] + pos,
+		_vertices[face[2]] + pos,
+		_vertices[face[3]] + pos
+	]
+
+	var normal = (Vector3(verts[2]) - Vector3(verts[0])).cross(Vector3(verts[1]) - Vector3(verts[0])).normalized()
+	var normals = [normal, normal, normal]
+
+	tool.add_triangle_fan([verts[0], verts[1], verts[2]], [uvs[0], uvs[1], uvs[2]], normals)
+	tool.add_triangle_fan([verts[0], verts[2], verts[3]], [uvs[0], uvs[2], uvs[3]], normals)
+
 
 func create_block_mesh(pos: Vector3i):
 	var block = _blocks[pos.x][pos.y][pos.z]
 	if block == BlockManager.instance.air:
 		return
 
-	if check_transparent(pos + Vector3i.UP):
-		create_face(_top, pos, block.top_texture if block.top_texture else block.texture)
-	if check_transparent(pos + Vector3i.DOWN):
-		create_face(_bottom, pos, block.bottom_texture if block.bottom_texture else block.texture)
-	if check_transparent(pos + Vector3i.LEFT):
-		create_face(_left, pos, block.texture)
-	if check_transparent(pos + Vector3i.RIGHT):
-		create_face(_right, pos, block.texture)
-	if check_transparent(pos + Vector3i.FORWARD):
-		create_face(_front, pos, block.texture)
-	if check_transparent(pos + Vector3i.BACK):
-		create_face(_back, pos, block.texture)
+	var is_water = (block == BlockManager.instance.water)
+
+	for direction in [
+		{face = _top,     offset = Vector3i.UP},
+		{face = _bottom,  offset = Vector3i.DOWN},
+		{face = _left,    offset = Vector3i.LEFT},
+		{face = _right,   offset = Vector3i.RIGHT},
+		{face = _front,   offset = Vector3i.FORWARD},
+		{face = _back,    offset = Vector3i.BACK}
+	]:
+		var neighbor_pos = pos + direction.offset
+		var neighbor = get_block_or_null(neighbor_pos)
+
+		if is_water:
+			# Only render water faces if neighbor is NOT water
+			if neighbor != BlockManager.instance.water:
+				create_face(direction.face, pos, block.texture)
+		else:
+			if neighbor == null or neighbor == BlockManager.instance.air or (neighbor and neighbor.is_transparent):
+				var tex = block.texture
+				if direction.face == _top and block.top_texture:
+					tex = block.top_texture
+				elif direction.face == _bottom and block.bottom_texture:
+					tex = block.bottom_texture
+
+				create_face(direction.face, pos, tex)
+				
+func get_block_or_null(pos: Vector3i) -> Block:
+	if pos.x >= 0 and pos.x < dimensions.x and pos.y >= 0 and pos.y < dimensions.y and pos.z >= 0 and pos.z < dimensions.z:
+		return _blocks[pos.x][pos.y][pos.z]
+	# Check other chunks
+	var world_pos = Vector3i(
+		chunk_position.x * dimensions.x + pos.x,
+		pos.y,
+		chunk_position.y * dimensions.z + pos.z
+	)
+	return ChunkManager.instance.get_block_at_world_position(world_pos)
+
 
 func create_face(face: Array, pos: Vector3i, texture: Texture2D):
 	var tex_pos = BlockManager.instance.get_texture_atlas_position(texture)
@@ -136,12 +224,8 @@ func create_face(face: Array, pos: Vector3i, texture: Texture2D):
 	_surface_tool.add_triangle_fan([verts[0], verts[2], verts[3]], [uvs[0], uvs[2], uvs[3]], normals)
 
 func check_transparent(pos: Vector3i) -> bool:
-	if pos.x < 0 or pos.x >= dimensions.x: return true
-	if pos.y < 0 or pos.y >= dimensions.y: return true
-	if pos.z < 0 or pos.z >= dimensions.z: return true
-
-	var b = _blocks[pos.x][pos.y][pos.z]
-	return b == BlockManager.instance.air or (b and b.is_transparent)
+	var b = get_block_or_null(pos)
+	return b == null or b == BlockManager.instance.air or (b and b.is_transparent)
 
 func set_block(pos: Vector3i, block: Block):
 	_blocks[pos.x][pos.y][pos.z] = block

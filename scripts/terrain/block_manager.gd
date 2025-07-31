@@ -8,6 +8,7 @@ class_name BlockManager
 @export var dirt: Block
 @export var grass: Block
 @export var water: Block
+@export var water_material: Material
 
 # Block texture size in pixels
 @export var block_texture_size: Vector2i = Vector2i(16, 16)

@@ -80,8 +80,8 @@ script = ExtResource("2_7mycd")
 texture = ExtResource("8_efxa6")
 top_texture = ExtResource("8_efxa6")
 bottom_texture = ExtResource("8_efxa6")
-is_transparent = true
-is_liquid = true
+is_transparent = false
+is_liquid = false
 is_air = false
 flow_speed = 1.0
 metadata/_custom_type_script = "uid://dgd27i5i7pf2t"
@@ -128,7 +128,7 @@ water = SubResource("Resource_dg77c")
 script = ExtResource("6_7mycd")
 chunk_scene = ExtResource("7_272bh")
 player_path = NodePath("../Player")
-render_distance = 5
+render_distance = 10
 metadata/_custom_type_script = "uid://btxm0irr3cgt3"
 
 [node name="Player" parent="." instance=ExtResource("9_kek77")]
