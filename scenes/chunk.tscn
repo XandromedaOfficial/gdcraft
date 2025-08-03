@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3 uid="uid://ce8un2atv51r1"]
 
-[ext_resource type="Script" uid="uid://irctlbic3fvn" path="res://scripts/terrain/chunk.gd" id="1_jas4a"]
+[ext_resource type="Script" uid="uid://irctlbic3fvn" path="res://scripts/legacy/chunk.gd" id="1_jas4a"]
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_jas4a"]
 noise_type = 3

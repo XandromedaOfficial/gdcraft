@@ -1,0 +1,40 @@
+[gd_scene load_steps=4 format=3 uid="uid://deug4hw2fe0b"]
+
+[ext_resource type="FontFile" uid="uid://1gd5xu7dsl2j" path="res://assets/fonts/minecraft_font.ttf" id="1_fj7yv"]
+[ext_resource type="PackedScene" uid="uid://tj0totgwdf8t" path="res://scenes/player.tscn" id="2_tlwt5"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_efxa6"]
+font = ExtResource("1_fj7yv")
+outline_color = Color(0, 0, 0, 1)
+
+[node name="world" type="Node3D"]
+
+[node name="GUI" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="GUI"]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 227.0
+offset_bottom = 28.0
+text = "Minecraft Beta 0.0_01a"
+label_settings = SubResource("LabelSettings_efxa6")
+
+[node name="Debug" type="Label" parent="GUI"]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 32.0
+offset_right = 228.0
+offset_bottom = 55.0
+label_settings = SubResource("LabelSettings_efxa6")
+
+[node name="Player" parent="." instance=ExtResource("2_tlwt5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 36, 0)
+head_bob_time = 1.5
+head_bob_speed = 10.0
